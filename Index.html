@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2d5016">
+    <title>Worldseed - God Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #1a1a2e;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #gameCanvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        
+        .ui-element {
+            pointer-events: auto;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, rgba(45, 80, 22, 0.95), rgba(45, 80, 22, 0.8));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-bottom: 3px solid #4a7c23;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .game-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: #f4e4c1;
+            text-shadow: 2px 2px 0 #1a3a0f;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #f4e4c1;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .stat-icon {
+            width: 16px;
+            height: 16px;
+            image-rendering: pixelated;
+        }
+        
+        /* Bottom Tool Panel */
+        .tool-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(26, 26, 46, 0.98), rgba(26, 26, 46, 0.9));
+            border-top: 3px solid #4a4a6a;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 40vh;
+        }
+        
+        .tool-categories {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        
+        .category-btn {
+            background: #3a3a5a;
+            border: 2px solid #5a5a7a;
+            color: #d4d4e4;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .category-btn.active {
+            background: #4a7c23;
+            border-color: #6aa833;
+            color: #f4e4c1;
+        }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .tool-btn {
+            background: #2a2a4a;
+            border: 3px solid #4a4a6a;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .tool-btn.active {
+            background: #4a7c23;
+            border-color: #8bc34a;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(139, 195, 74, 0.4);
+        }
+        
+        .tool-icon {
+            width: 32px;
+            height: 32px;
+            image-rendering: pixelated;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tool-name {
+            font-size: 9px;
+            color: #d4d4e4;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .tool-btn.active .tool-name {
+            color: #f4e4c1;
+        }
+        
+        /* Brush Size Slider */
+        .brush-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .brush-label {
+            font-size: 11px;
+            color: #a4a4c4;
+        }
+        
+        .brush-slider {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 6px;
+            background: #3a3a5a;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .brush-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #8bc34a;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #f4e4c1;
+        }
+        
+        .brush-value {
+            font-size: 12px;
+            color: #f4e4c1;
+            min-width: 25px;
+            font-weight: bold;
+        }
+        
+        /* Side Menu */
+        .side-menu {
+            position: absolute;
+            right: 10px;
+            top: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .menu-btn {
+            width: 45px;
+            height: 45px;
+            background: rgba(45, 80, 22, 0.9);
+            border: 3px solid #4a7c23;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #f4e4c1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            left: 10px;
+            top: 60px;
+            background: rgba(26, 26, 46, 0.95);
+            border: 3px solid #4a4a6a;
+            border-radius: 15px;
+            padding: 15px;
+            max-width: 200px;
+            display: none;
+        }
+        
+        .info-panel.visible {
+            display: block;
+        }
+        
+        .info-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            color: #8bc34a;
+            margin-bottom: 10px;
+        }
+        
+        .info-content {
+            font-size: 11px;
+            color: #d4d4e4;
+            line-height: 1.6;
+        }
+        
+        /* Time Controls */
+        .time-controls {
+            position: absolute;
+            left: 50%;
+            bottom: 45vh;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px;
+            border-radius: 25px;
+        }
+        
+        .time-btn {
+            width: 35px;
+            height: 35px;
+            background: #3a3a5a;
+            border: 2px solid #5a5a7a;
+            border-radius: 50%;
+            color: #f4e4c1;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .time-btn.active {
+            background: #4a7c23;
+            border-color: #8bc34a;
+        }
+        
+        /* Notifications */
+        .notification {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(139, 195, 74, 0.95);
+            color: #1a3a0f;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.3s;
+            border: 3px solid #f4e4c1;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* Loading Screen */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        
+        .loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            color: #8bc34a;
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4a7c23;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading" id="loading">
+        <div style="font-size: 60px;">🌍</div>
+        <div class="loading-text">GENERATING WORLD...</div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Layer -->
+    <div class="ui-layer">
+        <!-- Top Bar -->
+        <div class="top-bar ui-element">
+            <div class="game-title">WORLDSEED</div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span>👥</span>
+                    <span id="popCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>🏘️</span>
+                    <span id="villageCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>📅</span>
+                    <span id="yearDisplay">Year 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel ui-element" id="infoPanel">
+            <div class="info-title">SELECTED</div>
+            <div class="info-content" id="infoContent">Tap on a character or building to see details</div>
+        </div>
+
+        <!-- Side Menu -->
+        <div class="side-menu ui-element">
+            <button class="menu-btn" onclick="game.saveWorld()" title="Save">💾</button>
+            <button class="menu-btn" onclick="game.loadWorld()" title="Load">📂</button>
+            <button class="menu-btn" onclick="game.clearWorld()" title="Clear" style="background: rgba(180, 60, 60, 0.9);">🗑️</button>
+            <button class="menu-btn" onclick="game.toggleSettings()" title="Settings">⚙️</button>
+        </div>
+
+        <!-- Time Controls -->
+        <div class="time-controls ui-element">
+            <button class="time-btn active" onclick="game.setSpeed(0)" title="Pause">⏸️</button>
+            <button class="time-btn" onclick="game.setSpeed(1)" title="Play">▶️</button>
+            <button class="time-btn" onclick="game.setSpeed(2)" title="Fast">⏩</button>
+            <button class="time-btn" onclick="game.setSpeed(3)" title="Ultra">⏭️</button>
+        </div>
+
+        <!-- Notification -->
+        <div class="notification" id="notification">Welcome to Worldseed!</div>
+
+        <!-- Bottom Tool Panel -->
+        <div class="tool-panel ui-element">
+            <div class="tool-categories" id="categories">
+                <button class="category-btn active" data-cat="terrain">🌍 Terrain</button>
+                <button class="category-btn" data-cat="races">👥 Races</button>
+                <button class="category-btn" data-cat="resources">🌲 Resources</button>
+                <button class="category-btn" data-cat="buildings">🏠 Buildings</button>
+                <button class="category-btn" data-cat="powers">⚡ Powers</button>
+            </div>
+            
+            <div class="tools-grid" id="toolsGrid">
+                <!-- Generated by JS -->
+            </div>
+            
+            <div class="brush-control">
+                <span class="brush-label">Brush Size:</span>
+                <input type="range" class="brush-slider" id="brushSize" min="1" max="10" value="3">
+                <span class="brush-value" id="brushValue">3</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // WORLDSEED - God Simulator Game Engine
+        // ==========================================
+
+        class Worldseed {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // World settings
+                this.worldWidth = 256;
+                this.worldHeight = 256;
+                this.tileSize = 16;
+                this.zoom = 1;
+                this.cameraX = 0;
+                this.cameraY = 0;
+                
+                // Game state
+                this.grid = [];
+                this.entities = [];
+                this.particles = [];
+                this.villages = [];
+                this.time = 0;
+                this.year = 1;
+                this.speed = 1;
+                this.paused = false;
+                this.selectedTool = 'grass';
+                this.brushSize = 3;
+                this.currentCategory = 'terrain';
+                
+                // Race definitions with genetics
+                this.races = {
+                    human: {
+                        name: 'Human',
+                        color: '#ffdbac',
+                        hairColors: ['#2c1810', '#8b4513', '#d4a574', '#f5deb3'],
+                        buildingStyle: 'timber',
+                        traits: ['adaptable', 'diplomatic', 'balanced'],
+                        preferredBiome: ['plains', 'coast'],
+                        stats: { str: 5, int: 5, cha: 5, spd: 5 }
+                    },
+                    elf: {
+                        name: 'Elf',
+                        color: '#ffe0bd',
+                        hairColors: ['#ffd700', '#c0c0c0', '#8b4513', '#228b22'],
+                        buildingStyle: 'living',
+                        traits: ['magical', 'long-lived', 'nature-bond'],
+                        preferredBiome: ['forest', 'grove'],
+                        stats: { str: 3, int: 7, cha: 6, spd: 6 }
+                    },
+                    dwarf: {
+                        name: 'Dwarf',
+                        color: '#e8c4a0',
+                        hairColors: ['#8b0000', '#2c1810', '#d4a574', '#c0c0c0'],
+                        buildingStyle: 'stone',
+                        traits: ['mining', 'crafting', 'tough'],
+                        preferredBiome: ['mountain', 'cave'],
+                        stats: { str: 7, int: 5, cha: 3, spd: 3 }
+                    },
+                    orc: {
+                        name: 'Orc',
+                        color: '#8fbc8f',
+                        hairColors: ['#000000', '#2f4f4f', '#556b2f'],
+                        buildingStyle: 'spike',
+                        traits: ['warrior', 'raider', 'enduring'],
+                        preferredBiome: ['badland', 'swamp'],
+                        stats: { str: 8, int: 3, cha: 2, spd: 5 }
+                    },
+                    halfling: {
+                        name: 'Halfling',
+                        color: '#f5deb3',
+                        hairColors: ['#8b4513', '#d2691e', '#f4a460'],
+                        buildingStyle: 'burrow',
+                        traits: ['farming', 'stealth', 'lucky'],
+                        preferredBiome: ['hill', 'meadow'],
+                        stats: { str: 2, int: 5, cha: 7, spd: 4 }
+                    }
+                };
+                
+                // Hybrid races (genetics)
+                this.hybrids = {
+                    'human-elf': { name: 'Half-Elf', mix: ['human', 'elf'], bonus: 'diplomat' },
+                    'human-orc': { name: 'Half-Orc', mix: ['human', 'orc'], bonus: 'laborer' },
+                    'elf-dwarf': { name: 'Gnome', mix: ['elf', 'dwarf'], bonus: 'tinkerer' },
+                    'elf-orc': { name: 'Dark Elf', mix: ['elf', 'orc'], bonus: 'warlock' },
+                    'dwarf-orc': { name: 'Hobgoblin', mix: ['dwarf', 'orc'], bonus: 'smith-warrior' },
+                    'human-dwarf': { name: 'Hillfolk', mix: ['human', 'dwarf'], bonus: 'prospector' }
+                };
+                
+                // Tools configuration
+                this.tools = {
+                    terrain: [
+                        { id: 'grass', name: 'Grass', icon: '🌱', color: '#7cb342' },
+                        { id: 'forest', name: 'Forest', icon: '🌲', color: '#2e7d32' },
+                        { id: 'water', name: 'Water', icon: '💧', color: '#29b6f6' },
+                        { id: 'sand', name: 'Sand', icon: '🏖️', color: '#ffe082' },
+                        { id: 'mountain', name: 'Mountain', icon: '⛰️', color: '#8d6e63' },
+                        { id: 'snow', name: 'Snow', icon: '❄️', color: '#e3f2fd' }
+                    ],
+                    races: [
+                        { id: 'spawn_human', name: 'Human', icon: '👤', color: '#ffdbac', race: 'human' },
+                        { id: 'spawn_elf', name: 'Elf', icon: '🧝', color: '#ffe0bd', race: 'elf' },
+                        { id: 'spawn_dwarf', name: 'Dwarf', icon: '🧔', color: '#e8c4a0', race: 'dwarf' },
+                        { id: 'spawn_orc', name: 'Orc', icon: '👹', color: '#8fbc8f', race: 'orc' },
+                        { id: 'spawn_halfling', name: 'Halfling', icon: '🤴', color: '#f5deb3', race: 'halfling' }
+                    ],
+                    resources: [
+                        { id: 'tree', name: 'Tree', icon: '🌳', color: '#4caf50' },
+                        { id: 'rock', name: 'Rock', icon: '🪨', color: '#757575' },
+                        { id: 'berry', name: 'Berries', icon: '🫐', color: '#9c27b0' },
+                        { id: 'gold', name: 'Gold Ore', icon: '✨', color: '#ffd700' },
+                        { id: 'iron', name: 'Iron Ore', icon: '⛏️', color: '#607d8b' },
+                        { id: 'crystal', name: 'Crystal', icon: '💎', color: '#e91e63' }
+                    ],
+                    buildings: [
+                        { id: 'house', name: 'House', icon: '🏠', color: '#8d6e63' },
+                        { id: 'farm', name: 'Farm', icon: '🌾', color: '#ffeb3b' },
+                        { id: 'mine', name: 'Mine', icon: '⛏️', color: '#5d4037' },
+                        { id: 'market', name: 'Market', icon: '⚖️', color: '#ff9800' },
+                        { id: 'wall', name: 'Wall', icon: '🧱', color: '#795548' },
+                        { id: 'bridge', name: 'Bridge', icon: '🌉', color: '#a1887f' }
+                    ],
+                    powers: [
+                        { id: 'smite', name: 'Smite', icon: '⚡', color: '#ffeb3b' },
+                        { id: 'heal', name: 'Heal', icon: '💚', color: '#4caf50' },
+                        { id: 'meteor', name: 'Meteor', icon: '☄️', color: '#ff5722' },
+                        { id: 'rain', name: 'Rain', icon: '🌧️', color: '#2196f3' },
+                        { id: 'fire', name: 'Fire', icon: '🔥', color: '#f44336' },
+                        { id: 'bless', name: 'Bless', icon: '✨', color: '#ffc107' }
+                    ]
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.generateWorld();
+                this.setupUI();
+                this.setupInput();
+                this.startLoop();
+                
+                // Hide loading
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                    this.showNotification('Welcome to Worldseed! Tap to place life.');
+                }, 1500);
+            }
+            
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                    this.render();
+                };
+                window.addEventListener('resize', resize);
+                resize();
+            }
+            
+            generateWorld() {
+                // Initialize grid
+                this.grid = [];
+                for (let y = 0; y < this.worldHeight; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.worldWidth; x++) {
+                        // Simple noise-based generation
+                        const noise = Math.sin(x * 0.05) * Math.cos(y * 0.05) + 
+                                     Math.sin(x * 0.1 + y * 0.1) * 0.5;
+                        
+                        let type = 'grass';
+                        if (noise > 0.6) type = 'mountain';
+                        else if (noise > 0.4) type = 'forest';
+                        else if (noise < -0.5) type = 'water';
+                        else if (noise < -0.3) type = 'sand';
+                        
+                        row.push({
+                            type: type,
+                            x: x,
+                            y: y,
+                            resource: null,
+                            building: null,
+                            fertility: Math.random()
+                        });
+                    }
+                    this.grid.push(row);
+                }
+                
+                // Add initial resources
+                for (let i = 0; i < 200; i++) {
+                    const x = Math.floor(Math.random() * this.worldWidth);
+                    const y = Math.floor(Math.random() * this.worldHeight);
+                    if (this.grid[y][x].type === 'forest') {
+                        this.grid[y][x].resource = 'tree';
+                    } else if (this.grid[y][x].type === 'mountain') {
+                        this.grid[y][x].resource = Math.random() > 0.7 ? 'gold' : 'iron';
+                    }
+                }
+            }
+            
+            setupUI() {
+                // Categories
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentCategory = e.target.dataset.cat;
+                        this.renderTools();
+                    });
+                });
+                
+                // Brush size
+                const slider = document.getElementById('brushSize');
+                const display = document.getElementById('brushValue');
+                slider.addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    display.textContent = this.brushSize;
+                });
+                
+                this.renderTools();
+            }
+            
+            renderTools() {
+                const grid = document.getElementById('toolsGrid');
+                grid.innerHTML = '';
+                
+                const tools = this.tools[this.currentCategory] || [];
+                tools.forEach(tool => {
+                    const btn = document.createElement('button');
+                    btn.className = 'tool-btn ui-element';
+                    if (tool.id === this.selectedTool) btn.classList.add('active');
+                    
+                    btn.innerHTML = `
+                        <div class="tool-icon">${tool.icon}</div>
+                        <div class="tool-name">${tool.name}</div>
+                    `;
+                    
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.selectedTool = tool.id;
+                    });
+                    
+                    grid.appendChild(btn);
+                });
+            }
+            
+            setupInput() {
+                let isDragging = false;
+                let lastX, lastY;
+                
+                const getWorldPos = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    return {
+                        x: Math.floor((clientX - rect.left - this.cameraX) / (this.tileSize * this.zoom)),
+                        y: Math.floor((clientY - rect.top - this.cameraY) / (this.tileSize * this.zoom))
+                    };
+                };
+                
+                const handleStart = (e) => {
+                    isDragging = true;
+                    const pos = getWorldPos(e);
+                    lastX = pos.x;
+                    lastY = pos.y;
+                    
+                    // Check if clicking UI
+                    if (e.target.closest('.ui-element')) return;
+                    
+                    // Single tap = interact or paint
+                    if (e.type === 'touchstart' || e.button === 0) {
+                        this.handleInput(pos.x, pos.y);
+                    }
+                };
+                
+                const handleMove = (e) => {
+                    if (!isDragging) return;
+                    const pos = getWorldPos(e);
+                    
+                    // Pan camera with two fingers or right click
+                    if ((e.touches && e.touches.length > 1) || (e.buttons === 2)) {
+                        this.cameraX += (pos.x - lastX) * this.tileSize * this.zoom;
+                        this.cameraY += (pos.y - lastY) * this.tileSize * this.zoom;
+                    } else if (e.target === this.canvas) {
+                        // Paint with brush
+                        this.paintAt(pos.x, pos.y);
+                    }
+                    
+                    lastX = pos.x;
+                    lastY = pos.y;
+                };
+                
+                const handleEnd = () => {
+                    isDragging = false;
+                };
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', handleStart, {passive: false});
+                this.canvas.addEventListener('touchmove', handleMove, {passive: false});
+                this.canvas.addEventListener('touchend', handleEnd);
+                
+                // Mouse events
+                this.canvas.addEventListener('mousedown', handleStart);
+                this.canvas.addEventListener('mousemove', handleMove);
+                this.canvas.addEventListener('mouseup', handleEnd);
+                this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+                
+                // Zoom with wheel
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.zoom = Math.max(0.5, Math.min(3, this.zoom * delta));
+                }, {passive: false});
+            }
+            
+            handleInput(x, y) {
+                // Check if clicking on entity
+                const clicked = this.entities.find(e => 
+                    Math.abs(e.x - x) < 1 && Math.abs(e.y - y) < 1
+                );
+                
+                if (clicked) {
+                    this.showEntityInfo(clicked);
+                    return;
+                }
+                
+                this.paintAt(x, y);
+            }
+            
+            paintAt(x, y) {
+                const r = this.brushSize;
+                
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        if (dx*dx + dy*dy > r*r) continue;
+                        
+                        const wx = x + dx;
+                        const wy = y + dy;
+                        
+                        if (wx < 0 || wx >= this.worldWidth || wy < 0 || wy >= this.worldHeight) continue;
+                        
+                        this.applyTool(wx, wy);
+                    }
+                }
+            }
+            
+            applyTool(x, y) {
+                const tool = this.selectedTool;
+                const cell = this.grid[y][x];
+                
+                // Terrain tools
+                if (['grass', 'forest', 'water', 'sand', 'mountain', 'snow'].includes(tool)) {
+                    cell.type = tool;
+                    if (tool === 'forest') cell.resource = 'tree';
+                }
+                
+                // Race spawning
+                else if (tool.startsWith('spawn_')) {
+                    const race = tool.replace('spawn_', '');
+                    this.spawnCharacter(x, y, race);
+                }
+                
+                // Resources
+                else if (['tree', 'rock', 'berry', 'gold', 'iron', 'crystal'].includes(tool)) {
+                    cell.resource = tool;
+                }
+                
+                // Buildings
+                else if (['house', 'farm', 'mine', 'market', 'wall', 'bridge'].includes(tool)) {
+                    cell.building = {
+                        type: tool,
+                        health: 100,
+                        owner: null
+                    };
+                }
+                
+                // Powers
+                else if (tool === 'smite') {
+                    this.entities = this.entities.filter(e => {
+                        if (Math.abs(e.x - x) < 2 && Math.abs(e.y - y) < 2) {
+                            this.addParticle(e.x, e.y, '⚡');
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+                else if (tool === 'heal') {
+                    this.entities.forEach(e => {
+                        if (Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3) {
+                            e.health = Math.min(100, e.health + 50);
+                            this.addParticle(e.x, e.y, '💚');
+                        }
+                    });
+                }
+                else if (tool === 'meteor') {
+                    this.addParticle(x, y, '☄️');
+                    for (let dy = -3; dy <= 3; dy++) {
+                        for (let dx = -3; dx <= 3; dx++) {
+                            const d = Math.sqrt(dx*dx + dy*dy);
+                            if (d > 3) continue;
+                            const mx = x + dx, my = y + dy;
+                            if (mx >= 0 && mx < this.worldWidth && my >= 0 && my < this.worldHeight) {
+                                this.grid[my][mx].type = d < 2 ? 'mountain' : 'sand';
+                                this.grid[my][mx].building = null;
+                            }
+                        }
+                    }
+                    this.entities = this.entities.filter(e => {
+                        const d = Math.sqrt((e.x-x)**2 + (e.y-y)**2);
+                        if (d < 3) {
+                            this.addParticle(e.x, e.y, '💀');
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+                else if (tool === 'rain') {
+                    for (let i = 0; i < 20; i++) {
+                        this.addParticle(x + (Math.random()-0.5)*10, y + (Math.random()-0.5)*10, '💧');
+                    }
+                }
+                else if (tool === 'fire') {
+                    cell.type = 'sand';
+                    this.addParticle(x, y, '🔥');
+                }
+                else if (tool === 'bless') {
+                    this.entities.forEach(e => {
+                        if (Math.abs(e.x - x) < 3 && Math.abs(e.y - y) < 3) {
+                            e.blessed = true;
+                            e.fertility += 0.5;
+                            this.addParticle(e.x, e.y, '✨');
+                        }
+                    });
+                }
+            }
+            
+            spawnCharacter(x, y, race, parents = null) {
+                const raceData = this.races[race];
+                const character = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    x: x,
+                    y: y,
+                    race: race,
+                    gender: Math.random() > 0.5 ? 'male' : 'female',
+                    age: 0,
+                    maxAge: 50 + Math.random() * 30,
+                    health: 100,
+                    hunger: 50,
+                    happiness: 50,
+                    relationships: [],
+                    skills: { farming: 0, mining: 0, combat: 0, trading: 0 },
+                    inventory: { food: 0, gold: 0, materials: 0 },
+                    home: null,
+                    job: null,
+                    married: null,
+                    children: [],
+                    parents: parents,
+                    generation: parents ? Math.max(parents[0]?.generation || 0, parents[1]?.generation || 0) + 1 : 0,
+                    hairColor: raceData.hairColors[Math.floor(Math.random() * raceData.hairColors.length)],
+                    fertility: 0.5 + Math.random() * 0.5,
+                    blessed: false,
+                    state: 'idle' // idle, working, moving, socializing
+                };
+                
+                // Apply hybrid stats if parents
+                if (parents && parents[0] && parents[1]) {
+                    const p1Race = this.races[parents[0].race];
+                    const p2Race = this.races[parents[1].race];
+                    character.stats = {
+                        str: (p1Race.stats.str + p2Race.stats.str) / 2 + (Math.random() - 0.5),
+                        int: (p1Race.stats.int + p2Race.stats.int) / 2 + (Math.random() - 0.5),
+                        cha: (p1Race.stats.cha + p2Race.stats.cha) / 2 + (Math.random() - 0.5),
+                        spd: (p1Race.stats.spd + p2Race.stats.spd) / 2 + (Math.random() - 0.5)
+                    };
+                    
+                    // Check for hybrid race name
+                    const mixKey = [parents[0].race, parents[1].race].sort().join('-');
+                    if (this.hybrids[mixKey]) {
+                        character.hybrid = this.hybrids[mixKey].name;
+                        character.traits = [...new Set([...p1Race.traits, ...p2Race.traits])];
+                    }
+                } else {
+                    character.stats = { ...raceData.stats };
+                    character.traits = [...raceData.traits];
+                }
+                
+                this.entities.push(character);
+                this.updateStats();
+                
+                return character;
+            }
+            
+            update() {
+                if (this.paused) return;
+                
+                // Time progression
+                this.time += 0.01 * this.speed;
+                if (this.time >= 100) {
+                    this.time = 0;
+                    this.year++;
+                    document.getElementById('yearDisplay').textContent = `Year ${this.year}`;
+                    this.showNotification(`Year ${this.year} begins!`);
+                }
+                
+                // Update entities
+                this.entities.forEach(entity => {
+                    this.updateEntity(entity);
+                });
+                
+                // Village simulation
+                this.updateVillages();
+                
+                // Particles
+                this.particles = this.particles.filter(p => {
+                    p.life--;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    return p.life > 0;
+                });
+                
+                // Random events
+                if (Math.random() < 0.001 * this.speed) {
+                    this.randomEvent();
+                }
+            }
+            
+            updateEntity(e) {
+                // Age
+                e.age += 0.001 * this.speed;
+                
+                // Death by age
+                if (e.age > e.maxAge) {
+                    e.health -= 0.1 * this.speed;
+                }
+                
+                // Needs
+                e.hunger -= 0.02 * this.speed;
+                if (e.hunger < 0) e.health -= 0.1 * this.speed;
+                if (e.hunger > 80) e.health = Math.min(100, e.health + 0.05 * this.speed);
+                
+                // AI Behavior
+                if (e.state === 'idle') {
+                    // Find food if hungry
+                    if (e.hunger < 30) {
+                        this.seekFood(e);
+                    }
+                    // Find mate if adult and not married
+                    else if (e.age > 18 && !e.married && e.hunger > 50) {
+                        this.seekMate(e);
+                    }
+                    // Work
+                    else if (Math.random() < 0.01) {
+                        this.assignWork(e);
+                    }
+                    // Random movement
+                    else if (Math.random() < 0.1) {
+                        this.moveRandom(e);
+                    }
+                }
+                
+                // Relationships decay
+                e.relationships = e.relationships.filter(r => {
+                    r.strength -= 0.001 * this.speed;
+                    return r.strength > 0;
+                });
+                
+                // Remove dead
+                if (e.health <= 0) {
+                    this.addParticle(e.x, e.y, '💀');
+                    // Inheritance
+                    if (e.children.length > 0) {
+                        e.children.forEach(child => {
+                            child.inventory.gold += e.inventory.gold / e.children.length;
+                        });
+                    }
+                }
+            }
+            
+            seekFood(e) {
+                // Look for nearby resources
+                for (let dy = -5; dy <= 5; dy++) {
+                    for (let dx = -5; dx <= 5; dx++) {
+                        const x = e.x + dx, y = e.y + dy;
+                        if (x < 0 || x >= this.worldWidth || y < 0 || y >= this.worldHeight) continue;
+                        
+                        const cell = this.grid[y][x];
+                        if (cell.resource === 'berry' || cell.resource === 'tree') {
+                            this.moveToward(e, x, y);
+                            if (Math.abs(e.x - x) < 1 && Math.abs(e.y - y) < 1) {
+                                e.hunger = Math.min(100, e.hunger + 30);
+                                cell.resource = null;
+                                e.skills.farming += 0.1;
+                            }
+                            return;
+                        }
+                    }
+                }
+                this.moveRandom(e);
+            }
+            
+            seekMate(e) {
+                const mate = this.entities.find(other => {
+                    if (other === e) return false;
+                    if (other.race !== e.race && !this.canBreed(e.race, other.race)) return false;
+                    if (other.gender === e.gender) return false;
+                    if (other.age < 18 || other.age > 60) return false;
+                    if (other.married) return false;
+                    const dist = Math.sqrt((other.x - e.x)**2 + (other.y - e.y)**2);
+                    return dist < 10;
+                });
+                
+                if (mate) {
+                    this.moveToward(e, mate.x, mate.y);
+                    if (Math.abs(e.x - mate.x) < 2 && Math.abs(e.y - mate.y) < 2) {
+                        this.formRelationship(e, mate);
+                    }
+                }
+            }
+            
+            canBreed(race1, race2) {
+                if (race1 === race2) return true;
+                const key = [race1, race2].sort().join('-');
+                return this.hybrids[key] !== undefined;
+            }
+            
+            formRelationship(e1, e2) {
+                e1.married = e2;
+                e2.married = e1;
+                
+                // Add to relationships
+                e1.relationships.push({ target: e2, type: 'spouse', strength: 100 });
+                e2.relationships.push({ target: e1, type: 'spouse', strength: 100 });
+                
+                this.showNotification(`${e1.race} and ${e2.race} formed a bond!`);
+                
+                // Try to have child
+                if (Math.random() < (e1.fertility + e2.fertility) / 2) {
+                    setTimeout(() => {
+                        const childRace = this.determineChildRace(e1, e2);
+                        const child = this.spawnCharacter(e1.x, e1.y, childRace, [e1, e2]);
+                        e1.children.push(child);
+                        e2.children.push(child);
+                        this.showNotification(`A ${childRace} child was born!`);
+                    }, 5000 / this.speed);
+                }
+            }
+            
+            determineChildRace(p1, p2) {
+                if (p1.race === p2.race) return p1.race;
+                const key = [p1.race, p2.race].sort().join('-');
+                if (this.hybrids[key]) {
+                    return Math.random() > 0.5 ? p1.race : p2.race; // Simplified hybrid logic
+                }
+                return p1.race;
+            }
+            
+            assignWork(e) {
+                const raceData = this.races[e.race];
+                
+                if (raceData.traits.includes('mining') && Math.random() < 0.3) {
+                    e.state = 'mining';
+                    e.job = 'miner';
+                } else if (raceData.traits.includes('farming')) {
+                    e.state = 'farming';
+                    e.job = 'farmer';
+                } else {
+                    e.job = 'laborer';
+                }
+            }
+            
+            moveToward(e, tx, ty) {
+                const dx = Math.sign(tx - e.x);
+                const dy = Math.sign(ty - e.y);
+                const speed = e.stats.spd * 0.1;
+                
+                e.x += dx * speed;
+                e.y += dy * speed;
+                
+                // Bounds
+                e.x = Math.max(0, Math.min(this.worldWidth - 1, e.x));
+                e.y = Math.max(0, Math.min(this.worldHeight - 1, e.y));
+            }
+            
+            moveRandom(e) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = e.stats.spd * 0.05;
+                e.x += Math.cos(angle) * speed;
+                e.y += Math.sin(angle) * speed;
+                e.x = Math.max(0, Math.min(this.worldWidth - 1, e.x));
+                e.y = Math.max(0, Math.min(this.worldHeight - 1, e.y));
+            }
+            
+            updateVillages() {
+                // Group entities by proximity
+                const groups = [];
+                const visited = new Set();
+                
+                this.entities.forEach(e => {
+                    if (visited.has(e.id)) return;
+                    
+                    const group = [];
+                    const queue = [e];
+                    visited.add(e.id);
+                    
+                    while (queue.length > 0) {
+                        const current = queue.pop();
+                        group.push(current);
+                        
+                        this.entities.forEach(other => {
+                            if (visited.has(other.id)) return;
+                            const dist = Math.sqrt((other.x - current.x)**2 + (other.y - current.y)**2);
+                            if (dist < 15) {
+                                visited.add(other.id);
+                                queue.push(other);
+                            }
+                        });
+                    }
+                    
+                    if (group.length >= 3) {
+                        groups.push(group);
+                    }
+                });
+                
+                // Update or create villages
+                groups.forEach((group, i) => {
+                    let village = this.villages[i];
+                    if (!village) {
+                        village = {
+                            id: i,
+                            members: [],
+                            centerX: 0,
+                            centerY: 0,
+                            buildings: [],
+                            resources: { food: 0, gold: 0, materials: 0 },
+                            founded: this.year
+                        };
+                        this.villages[i] = village;
+                        this.showNotification(`A new settlement has formed!`);
+                    }
+                    
+                    village.members = group;
+                    village.centerX = group.reduce((sum, e) => sum + e.x, 0) / group.length;
+                    village.centerY = group.reduce((sum, e) => sum + e.y, 0) / group.length;
+                    
+                    // Auto-build
+                    if (Math.random() < 0.01 * this.speed && village.members.length > 3) {
+                        this.autoBuild(village);
+                    }
+                    
+                    // Economy
+                    village.members.forEach(e => {
+                        village.resources.food += e.inventory.food * 0.01;
+                        village.resources.gold += e.inventory.gold * 0.01;
+                        e.inventory.food *= 0.99;
+                        e.inventory.gold *= 0.99;
+                    });
+                });
+                
+                // Remove empty villages
+                this.villages = this.villages.filter(v => v.members.length > 0);
+            }
+            
+            autoBuild(village) {
+                const cx = Math.floor(village.centerX);
+                const cy = Math.floor(village.centerY);
+                
+                // Find empty spot
+                for (let dy = -5; dy <= 5; dy++) {
+                    for (let dx = -5; dx <= 5; dx++) {
+                        const x = cx + dx, y = cy + dy;
+                        if (x < 0 || x >= this.worldWidth || y < 0 || y >= this.worldHeight) continue;
+                        
+                        const cell = this.grid[y][x];
+                        if (cell.type !== 'water' && !cell.building && !cell.resource) {
+                            // Determine building type
+                            const majorityRace = this.getMajorityRace(village);
+                            let buildingType = 'house';
+                            
+                            if (village.resources.food < 50) buildingType = 'farm';
+                            else if (village.resources.gold < 100) buildingType = 'mine';
+                            else if (village.members.length > 10) buildingType = 'market';
+                            
+                            cell.building = {
+                                type: buildingType,
+                                race: majorityRace,
+                                health: 100,
+                                level: 1
+                            };
+                            
+                            village.buildings.push(cell.building);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            getMajorityRace(village) {
+                const counts = {};
+                village.members.forEach(e => {
+                    counts[e.race] = (counts[e.race] || 0) + 1;
+                });
+                return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'human';
+            }
+            
+            addParticle(x, y, emoji) {
+                this.particles.push({
+                    x: x,
+                    y: y,
+                    emoji: emoji,
+                    life: 30,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: -0.2 - Math.random() * 0.3
+                });
+            }
+            
+            randomEvent() {
+                const events = [
+                    'A traveler arrives!',
+                    'Merchants visit the settlement.',
+                    'Wild animals spotted nearby.',
+                    'A star falls in the night sky.',
+                    'Strange mushrooms appear in the forest.'
+                ];
+                this.showNotification(events[Math.floor(Math.random() * events.length)]);
+            }
+            
+            render() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                
+                // Clear
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, w, h);
+                
+                ctx.save();
+                ctx.translate(this.cameraX, this.cameraY);
+                ctx.scale(this.zoom, this.zoom);
+                
+                // Render tiles
+                const startX = Math.floor(-this.cameraX / (this.tileSize * this.zoom));
+                const startY = Math.floor(-this.cameraY / (this.tileSize * this.zoom));
+                const endX = startX + Math.ceil(w / (this.tileSize * this.zoom)) + 1;
+                const endY = startY + Math.ceil(h / (this.tileSize * this.zoom)) + 1;
+                
+                for (let y = Math.max(0, startY); y < Math.min(this.worldHeight, endY); y++) {
+                    for (let x = Math.max(0, startX); x < Math.min(this.worldWidth, endX); x++) {
+                        const cell = this.grid[y][x];
+                        const px = x * this.tileSize;
+                        const py = y * this.tileSize;
+                        
+                        // Terrain
+                        ctx.fillStyle = this.getTerrainColor(cell.type);
+                        ctx.fillRect(px, py, this.tileSize, this.tileSize);
+                        
+                        // Resource
+                        if (cell.resource) {
+                            ctx.font = `${this.tileSize * 0.8}px serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(this.getResourceEmoji(cell.resource), px + this.tileSize/2, py + this.tileSize/2);
+                        }
+                        
+                        // Building
+                        if (cell.building) {
+                            ctx.fillStyle = this.getBuildingColor(cell.building.type, cell.building.race);
+                            ctx.fillRect(px + 2, py + 2, this.tileSize - 4, this.tileSize - 4);
+                            
+                            // Building icon
+                            ctx.font = `${this.tileSize * 0.6}px serif`;
+                            ctx.fillText(this.getBuildingEmoji(cell.building.type), px + this.tileSize/2, py + this.tileSize/2);
+                        }
+                    }
+                }
+                
+                // Render entities
+                this.entities.forEach(e => {
+                    const px = e.x * this.tileSize;
+                    const py = e.y * this.tileSize;
+                    
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(px + this.tileSize/2, py + this.tileSize - 2, 6, 3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Character
+                    ctx.font = `${this.tileSize * 0.9}px serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.getRaceEmoji(e.race, e.gender), px + this.tileSize/2, py + this.tileSize/2);
+                    
+                    // Status indicators
+                    if (e.married) {
+                        ctx.font = '10px serif';
+                        ctx.fillText('💕', px + this.tileSize - 5, py + 5);
+                    }
+                    if (e.blessed) {
+                        ctx.font = '10px serif';
+                        ctx.fillText('✨', px + 5, py + 5);
+                    }
+                });
+                
+                // Render particles
+                this.particles.forEach(p => {
+                    ctx.font = '16px serif';
+                    ctx.textAlign = 'center';
+                    ctx.globalAlpha = p.life / 30;
+                    ctx.fillText(p.emoji, p.x * this.tileSize + this.tileSize/2, p.y * this.tileSize);
+                    ctx.globalAlpha = 1;
+                });
+                
+                // Render village borders
+                ctx.strokeStyle = 'rgba(139, 195, 74, 0.3)';
+                ctx.lineWidth = 2;
+                this.villages.forEach(v => {
+                    ctx.beginPath();
+                    ctx.arc(v.centerX * this.tileSize + this.tileSize/2, 
+                            v.centerY * this.tileSize + this.tileSize/2, 
+                            15 * this.tileSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+                
+                ctx.restore();
+            }
+            
+            getTerrainColor(type) {
+                const colors = {
+                    grass: '#7cb342',
+                    forest: '#558b2f',
+                    water: '#4fc3f7',
+                    sand: '#ffe082',
+                    mountain: '#8d6e63',
+                    snow: '#e3f2fd'
+                };
+                return colors[type] || '#7cb342';
+            }
+            
+            getResourceEmoji(resource) {
+                const emojis = {
+                    tree: '🌲',
+                    rock: '🪨',
+                    berry: '🫐',
+                    gold: '✨',
+                    iron: '⛏️',
+                    crystal: '💎'
+                };
+                return emojis[resource] || '';
+            }
+            
+            getBuildingColor(type, race) {
+                const raceColors = {
+                    human: '#8d6e63',
+                    elf: '#81c784',
+                    dwarf: '#5d4037',
+                    orc: '#3e2723',
+                    halfling: '#f9a825'
+                };
+                return raceColors[race] || '#8d6e63';
+            }
+            
+            getBuildingEmoji(type) {
+                const emojis = {
+                    house: '🏠',
+                    farm: '🌾',
+                    mine: '⛏️',
+                    market: '⚖️',
+                    wall: '🧱',
+                    bridge: '🌉'
+                };
+                return emojis[type] || '🏠';
+            }
+            
+            getRaceEmoji(race, gender) {
+                const emojis = {
+                    human: gender === 'male' ? '👨' : '👩',
+                    elf: gender === 'male' ? '🧝‍♂️' : '🧝‍♀️',
+                    dwarf: gender === 'male' ? '🧔' : '👩‍🦰',
+                    orc: gender === 'male' ? '👹' : '👺',
+                    halfling: gender === 'male' ? '🤴' : '👸'
+                };
+                return emojis[race] || '👤';
+            }
+            
+            showEntityInfo(entity) {
+                const panel = document.getElementById('infoPanel');
+                const content = document.getElementById('infoContent');
+                
+                const hybridText = entity.hybrid ? ` (${entity.hybrid})` : '';
+                const marriedText = entity.married ? `💕 Married to ${entity.married.race}` : 'Single';
+                const skills = Object.entries(entity.skills)
+                    .map(([k, v]) => `${k}: ${v.toFixed(1)}`)
+                    .join(', ');
+                
+                content.innerHTML = `
+                    <strong>${entity.race}${hybridText}</strong> ${entity.gender === 'male' ? '♂️' : '♀️'}<br>
+                    Age: ${entity.age.toFixed(1)} | Gen: ${entity.generation}<br>
+                    ❤️ ${entity.health.toFixed(0)} | 🍖 ${entity.hunger.toFixed(0)} | 😊 ${entity.happiness.toFixed(0)}<br>
+                    ${marriedText}<br>
+                    Job: ${entity.job || 'None'}<br>
+                    Children: ${entity.children.length}<br>
+                    <small>Str:${entity.stats.str.toFixed(1)} Int:${entity.stats.int.toFixed(1)} 
+                    Cha:${entity.stats.cha.toFixed(1)} Spd:${entity.stats.spd.toFixed(1)}</small>
+                `;
+                
+                panel.classList.add('visible');
+                setTimeout(() => panel.classList.remove('visible'), 5000);
+            }
+            
+            showNotification(text) {
+                const notif = document.getElementById('notification');
+                notif.textContent = text;
+                notif.classList.add('show');
+                setTimeout(() => notif.classList.remove('show'), 3000);
+            }
+            
+            updateStats() {
+                document.getElementById('popCount').textContent = this.entities.length;
+                document.getElementById('villageCount').textContent = this.villages.length;
+            }
+            
+            setSpeed(speed) {
+                this.speed = speed === 0 ? 0 : Math.pow(2, speed - 1);
+                this.paused = speed === 0;
+                
+                document.querySelectorAll('.time-btn').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === speed);
+                });
+            }
+            
+            saveWorld() {
+                const data = {
+                    grid: this.grid,
+                    entities: this.entities,
+                    villages: this.villages,
+                    year: this.year,
+                    time: this.time
+                };
+                localStorage.setItem('worldseed_save', JSON.stringify(data));
+                this.showNotification('World saved! 💾');
+            }
+            
+            loadWorld() {
+                const data = localStorage.getItem('worldseed_save');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    this.grid = parsed.grid;
+                    this.entities = parsed.entities;
+                    this.villages = parsed.villages;
+                    this.year = parsed.year || 1;
+                    this.time = parsed.time || 0;
+                    document.getElementById('yearDisplay').textContent = `Year ${this.year}`;
+                    this.updateStats();
+                    this.showNotification('World loaded! 📂');
+                }
+            }
+            
+            clearWorld() {
+                this.entities = [];
+                this.villages = [];
+                this.generateWorld();
+                this.year = 1;
+                this.time = 0;
+                document.getElementById('yearDisplay').textContent = 'Year 1';
+                this.updateStats();
+                this.showNotification('World cleared! 🗑️');
+            }
+            
+            toggleSettings() {
+                this.showNotification('Settings: Tap categories to switch tools!');
+            }
+            
+            startLoop() {
+                const loop = () => {
+                    this.update();
+                    this.render();
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+        }
+
+        // Initialize game
+        const game = new Worldseed();
+    </script>
+</body>
+</html>
